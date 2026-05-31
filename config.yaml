@@ -1,0 +1,191 @@
+profile:
+  name: "Alex Developer"
+  experience_years: 1
+  education: "B.S. in Computer Science, University of Tech (2023 – 2027)"
+  skills:
+    primary:
+      - React.js
+      - Next.js
+      - Node.js
+      - Express.js
+      - TypeScript
+      - Python
+    secondary:
+      - PostgreSQL
+      - Docker
+      - AWS
+      - FastAPI
+      - Prisma
+      - Tailwind CSS
+    niche:
+      - Solidity
+      - Rust
+      - Smart Contracts
+      - EVM
+      - Cryptography
+      - dApps
+      - DeFi
+
+filters:
+  role_types:
+    - fullstack
+    - frontend
+    - backend
+    - smart contract engineer
+    - blockchain developer
+    - software engineer
+  job_types:
+    - internship
+    - full-time
+  locations:
+    - Remote
+    - India
+    - Mumbai
+    - Bangalore
+    - Hybrid
+  max_age_days: 14
+  min_score_display: 6
+  exclude_keywords:
+    - "5+ years"
+    - "7+ years"
+    - "10+ years"
+    - "staff engineer"
+    - "principal engineer"
+    - "director"
+    - "vice president"
+    - "vp of"
+  exclude_company_keywords:
+    - "staffing"
+    - "recruiting"
+    - "talent solutions"
+    - "manpower"
+    - "consultancy"
+    - "outsourcing"
+  max_company_size: 500
+
+sources:
+  linkedin:
+    enabled: true
+    max_results: 50
+    search_terms:
+      - "Smart Contract Engineer"
+      - "Solidity Developer"
+      - "Web3 Frontend Engineer"
+      - "dApp Developer"
+      - "Blockchain Developer"
+  hn_hiring:
+    enabled: true
+  yc_jobs:
+    enabled: true
+  wellfound:
+    enabled: true
+    max_results: 30
+  remotive:
+    enabled: true
+  google_search:
+    enabled: false  # Replaced by ats_boards — keeps getting 429'd by Google
+    max_queries_per_run: 25
+    delay_between_queries_seconds: 6
+    ats_sites:
+      - "lever.co"
+      - "greenhouse.io"
+      - "jobs.ashbyhq.com"
+      - "boards.greenhouse.io"
+      - "apply.workable.com"
+      - "jobs.lever.co"
+    search_templates:
+      - 'site:{ats_site} "{skill}" engineer'
+      - 'site:{ats_site} "{skill}" developer'
+      - '"{skill}" startup hiring engineer remote 2026'
+      - '"{skill}" "we are hiring" developer India'
+      - '"{skill}" internship engineer 2026'
+
+  # ── New Sources (V2) ──────────────────────────────────────────────
+  ats_boards:
+    enabled: true
+    companies:
+      # WebRTC / Real-time companies
+      - {slug: "livekit", ats: "lever"}
+      - {slug: "daily-co", ats: "lever"}
+      - {slug: "mux", ats: "lever"}
+      - {slug: "agora-io", ats: "greenhouse"}
+      - {slug: "vonage", ats: "greenhouse"}
+      - {slug: "twilio", ats: "greenhouse"}
+      - {slug: "stream", ats: "lever"}
+      - {slug: "dolby", ats: "greenhouse"}
+      - {slug: "zoom", ats: "greenhouse"}
+      - {slug: "100ms", ats: "lever"}
+      # Well-known startups
+      - {slug: "vercel", ats: "greenhouse"}
+      - {slug: "supabase", ats: "ashby"}
+      - {slug: "railway", ats: "ashby"}
+      - {slug: "render", ats: "lever"}
+      - {slug: "fly-io", ats: "lever"}
+      - {slug: "planetscale", ats: "lever"}
+      - {slug: "neon", ats: "lever"}
+      - {slug: "resend", ats: "ashby"}
+      - {slug: "cal-com", ats: "ashby"}
+      - {slug: "linear", ats: "lever"}
+      # General tech
+      - {slug: "stripe", ats: "greenhouse"}
+      - {slug: "figma", ats: "greenhouse"}
+      - {slug: "notion", ats: "greenhouse"}
+      - {slug: "discord", ats: "greenhouse"}
+      - {slug: "cloudflare", ats: "greenhouse"}
+
+  remoteok:
+    enabled: true
+    max_results: 50
+
+  indeed:
+    enabled: true
+    max_results: 30
+    search_terms:
+      - "Smart Contract Engineer"
+      - "Web3 Developer India"
+      - "Solidity Developer"
+      - "dApp developer"
+
+  devto:
+    enabled: true
+
+  glassdoor:
+    enabled: true
+    max_results: 30
+    search_terms:
+      - "software engineer remote"
+      - "web developer"
+
+  remotehunter:
+    enabled: true
+    max_results: 30
+
+  sourcingxpress:
+    enabled: true
+    max_results: 30
+
+scheduler:
+  refresh_every_hours: 6
+  retry_failed_sources_after_minutes: 30
+
+llm:
+  provider: gemini
+  model: gemini-3.1-flash-lite
+  api_key: "YOUR_GEMINI_API_KEY_HERE"
+  max_retries: 3
+  retry_delay_seconds: 5
+  fallback_to_heuristic: true
+  # OpenRouter free tier (Phase 3)
+  openrouter_api_key: ""  # Get free key at https://openrouter.ai
+  # Local MLX fallback (Phase 3)
+  local_fallback:
+    enabled: true  # Enable after running: python -m intelligence.local_scorer --setup
+    models:
+      - "mlx-community/Phi-4-mini-instruct-4bit"
+      - "mlx-community/Qwen3.5-4B-MLX-4bit"
+
+logging:
+  level: INFO
+  file: "logs/jobradar.log"
+  rotation: "10 MB"
+  retention: "7 days"

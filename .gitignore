@@ -1,0 +1,79 @@
+# ──────────────────────────────────────────────────────────────────────
+# JobRadar Git Ignore Configuration
+# ──────────────────────────────────────────────────────────────────────
+
+# Dependency Directories
+node_modules/
+jobradar/frontend/node_modules/
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+.env/
+jobradar/backend/venv/
+
+# Build & Output Folders
+dist/
+jobradar/frontend/dist/
+build/
+bin/
+out/
+.next/
+
+# SQLite Database & Storage Files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+jobradar/backend/*.db
+jobradar/backend/*.db-shm
+jobradar/backend/*.db-wal
+jobradar/backend/storage/*.db
+jobradar/backend/storage/*.db-shm
+jobradar/backend/storage/*.db-wal
+
+# Application Logs
+logs/
+*.log
+jobradar/logs/
+jobradar/backend/logs/
+
+# Python Caches & Compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# IDE / System Settings
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+context.md
+
+# Local Configuration Credentials
+config.local.yaml
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
