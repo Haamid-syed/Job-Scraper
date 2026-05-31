@@ -18,7 +18,7 @@ async function fetchJobs(filters: FilterState): Promise<JobsResponse> {
 }
 
 function apiQueryKey(filters: FilterState) {
-  return ['jobs', filters.verdict, filters.minScore, filters.status, filters.showHidden, filters.q];
+  return ['jobs', filters.verdict, filters.minScore, filters.status, filters.showHidden, filters.q, filters.sources.join(',')];
 }
 
 export function useJobs(filters: FilterState) {

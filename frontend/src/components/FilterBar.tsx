@@ -1,43 +1,79 @@
 import { useState, useEffect, useRef } from 'react';
-import type { FilterState } from '../types';
-import { Search, SlidersHorizontal, Eye, EyeOff } from 'lucide-react';
+import type { FilterState, JobStats } from '../types';
+import { Search, SlidersHorizontal, Eye, EyeOff, RefreshCw, Radar } from 'lucide-react';
+import { SourceHealthBar } from './SourceHealthBar';
+import jobsSnapshot from '../jobs_snapshot.json';
 
 interface FilterBarProps {
   filters: FilterState;
   onChange: (filters: FilterState) => void;
   totalVisible: number;
+  stats: JobStats | null;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+  isShowcase?: boolean;
+  onShowDemoInfo?: () => void;
 }
 
 const VERDICTS = [
-  { value: 'all', label: 'All Fits' },
-  { value: 'apply', label: 'Apply', colorClass: 'hover:border-green-500/30 hover:bg-green-500/5' },
-  { value: 'maybe', label: 'Maybe', colorClass: 'hover:border-amber-500/30 hover:bg-amber-500/5' },
-  { value: 'skip', label: 'Skip', colorClass: 'hover:border-red-500/30 hover:bg-red-500/5' },
+  { value: 'all', label: 'All' },
+  { value: 'apply', label: 'Apply', color: 'hsl(160, 84%, 58%)' },
+  { value: 'maybe', label: 'Maybe', color: 'hsl(38, 100%, 62%)' },
+  { value: 'skip', label: 'Skip', color: 'hsl(350, 85%, 60%)' },
 ] as const;
 
 const SOURCES = [
-  { value: 'hn', label: 'HN', color: 'text-orange-400 border-orange-500/15 bg-orange-500/10 hover:border-orange-400/40' },
-  { value: 'yc', label: 'YC', color: 'text-red-400 border-red-500/15 bg-red-500/10 hover:border-red-400/40' },
-  { value: 'wellfound', label: 'WF', color: 'text-emerald-400 border-emerald-500/15 bg-emerald-500/10 hover:border-emerald-400/40' },
-  { value: 'linkedin', label: 'LI', color: 'text-blue-400 border-blue-500/15 bg-blue-500/10 hover:border-blue-400/40' },
-  { value: 'remotive', label: 'RM', color: 'text-purple-400 border-purple-500/15 bg-purple-500/10 hover:border-purple-400/40' },
-  { value: 'ats_boards', label: 'ATS', color: 'text-cyan-400 border-cyan-500/15 bg-cyan-500/10 hover:border-cyan-400/40' },
-  { value: 'remoteok', label: 'ROK', color: 'text-teal-400 border-teal-500/15 bg-teal-500/10 hover:border-teal-400/40' },
-  { value: 'indeed', label: 'IND', color: 'text-indigo-400 border-indigo-500/15 bg-indigo-500/10 hover:border-indigo-400/40' },
-  { value: 'devto', label: 'DEV', color: 'text-lime-400 border-lime-500/15 bg-lime-500/10 hover:border-lime-400/40' },
-  { value: 'glassdoor', label: 'GD', color: 'text-sky-400 border-sky-500/15 bg-sky-500/10 hover:border-sky-400/40' },
-  { value: 'remotehunter', label: 'RH', color: 'text-pink-400 border-pink-500/15 bg-pink-500/10 hover:border-pink-400/40' },
-  { value: 'sourcingxpress', label: 'SX', color: 'text-amber-400 border-amber-500/15 bg-amber-500/10 hover:border-amber-400/40' },
+  { value: 'hn', label: 'HN', dot: 'hsl(25, 95%, 55%)' },
+  { value: 'yc', label: 'YC', dot: 'hsl(5, 85%, 55%)' },
+  { value: 'wellfound', label: 'WF', dot: 'hsl(155, 70%, 50%)' },
+  { value: 'linkedin', label: 'LI', dot: 'hsl(210, 85%, 55%)' },
+  { value: 'remotive', label: 'RM', dot: 'hsl(270, 65%, 60%)' },
+  { value: 'ats_boards', label: 'ATS', dot: 'hsl(190, 85%, 50%)' },
+  { value: 'remoteok', label: 'ROK', dot: 'hsl(170, 60%, 45%)' },
+  { value: 'indeed', label: 'IND', dot: 'hsl(230, 65%, 55%)' },
+  { value: 'devto', label: 'DEV', dot: 'hsl(80, 65%, 50%)' },
+  { value: 'glassdoor', label: 'GD', dot: 'hsl(200, 80%, 55%)' },
+  { value: 'remotehunter', label: 'RH', dot: 'hsl(330, 70%, 55%)' },
+  { value: 'sourcingxpress', label: 'SX', dot: 'hsl(38, 85%, 55%)' },
 ] as const;
 
 const STATUSES = [
-  { value: 'all', label: 'All Jobs' },
+  { value: 'all', label: 'All' },
   { value: 'new', label: 'New' },
   { value: 'saved', label: 'Saved' },
   { value: 'applied', label: 'Applied' },
 ] as const;
 
-export function FilterBar({ filters, onChange, totalVisible }: FilterBarProps) {
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return 'never';
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 1) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.floor(diffHours / 24)}d ago`;
+}
+
+export function FilterBar({
+  filters,
+  onChange,
+  totalVisible,
+  stats,
+  isRefreshing,
+  onRefresh,
+  isShowcase,
+  onShowDemoInfo,
+}: FilterBarProps) {
+  const isShowcaseMode = (import.meta as any).env.VITE_SHOWCASE_MODE === 'true';
+  const snapshotSources = isShowcaseMode
+    ? Array.from(new Set((jobsSnapshot.jobs as any[]).map(j => j.source)))
+    : [];
+
+  const visibleSources = SOURCES.filter(s => !isShowcaseMode || snapshotSources.includes(s.value));
+
   const [localQ, setLocalQ] = useState(filters.q);
   const [showFilters, setShowFilters] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,156 +95,213 @@ export function FilterBar({ filters, onChange, totalVisible }: FilterBarProps) {
   }, [localQ]);
 
   function toggleSource(src: string) {
-    const next = filters.sources.includes(src)
-      ? filters.sources.filter((s) => s !== src)
-      : [...filters.sources, src];
+    const isSelected = filters.sources.includes(src);
+    const next = isSelected ? [] : [src];
     onChange({ ...filters, sources: next });
   }
 
+  const activeFilterCount = [
+    filters.verdict !== 'all',
+    filters.status !== 'all',
+    filters.minScore > 0,
+    filters.showHidden,
+  ].filter(Boolean).length;
+
   return (
-    <div className="sticky top-[81px] sm:top-[85px] z-20 bg-black/35 backdrop-blur-lg border-b border-white/5 px-6 py-4">
+    <div className="sticky top-0 z-30 border-b border-[hsl(240,6%,14%)] px-6 py-5 bg-[hsl(240,12%,3%)]/95 backdrop-blur-sm">
       <div className="max-w-5xl mx-auto space-y-4">
         
-        {/* Row 1: Search, Toggle filters dropdown, visible count */}
-        <div className="flex items-center gap-3">
-          {/* Search box with Icon */}
+        {/* Row 1: Brand Logo & Actions */}
+        <div className="flex items-center justify-between gap-4 flex-wrap pb-1.5 border-b border-[hsl(240,6%,14%)]/40">
+          {/* Left: Logo + Title */}
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-[hsl(160,84%,58%)]/8 flex items-center justify-center border border-[hsl(160,84%,58%)]/15">
+                <Radar size={18} className="text-[hsl(160,84%,58%)] pulse-dot" />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[hsl(160,84%,58%)] border-2 border-[hsl(240,12%,3%)]" />
+            </div>
+            <div>
+              <h1 className="text-xl font-display tracking-tight text-white flex items-center gap-3">
+                <span className="italic">JobRadar</span>
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-[hsl(240,5%,48%)] not-italic tracking-wider">
+                  V2.1
+                </span>
+                {isShowcase && (
+                  <button
+                    onClick={onShowDemoInfo}
+                    className="text-[9px] font-mono font-bold px-2.5 py-1 rounded-md bg-[hsl(38,100%,62%)]/8 border border-[hsl(38,100%,62%)]/20 text-[hsl(38,100%,62%)] hover:bg-[hsl(38,100%,62%)]/15 transition-all duration-200 flex items-center gap-1.5 select-none active:scale-95 cursor-pointer not-italic tracking-wider uppercase"
+                    title="Click to view Demo Details"
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[hsl(38,100%,62%)] opacity-60"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[hsl(38,100%,62%)]"></span>
+                    </span>
+                    DEMO
+                  </button>
+                )}
+              </h1>
+              {stats && (
+                <p className="text-[11px] text-[hsl(240,5%,38%)] font-medium mt-0.5 tracking-wide">
+                  Last sync <span className="text-[hsl(240,5%,52%)] font-mono font-semibold">{timeAgo(stats.last_refresh)}</span>
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Health + Refresh */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <SourceHealthBar />
+            <button
+              id="refresh-btn"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-[hsl(240,6%,14%)] hover:border-[hsl(240,6%,22%)] text-[hsl(240,5%,48%)] hover:text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed select-none active:scale-[0.97]"
+            >
+              <RefreshCw
+                size={13}
+                className={`transition-transform duration-700 ${isRefreshing ? 'animate-spin' : ''}`}
+              />
+              {isRefreshing ? 'Syncing...' : 'Sync'}
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: Search + Refine toggle + Count */}
+        <div className="flex items-center gap-2.5">
+          {/* Search */}
           <div className="relative flex-1">
-            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
-              <Search size={16} />
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[hsl(240,5%,30%)]">
+              <Search size={14} />
             </span>
             <input
               type="text"
-              placeholder="Filter by position, skills or company..."
+              placeholder="Search positions, skills, companies..."
               value={localQ}
               onChange={(e) => setLocalQ(e.target.value)}
-              className="w-full bg-[#121216]/65 border border-white/5 focus:border-white/15 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none transition-all duration-300 font-medium"
+              className="w-full bg-[hsl(240,8%,7%)] border border-[hsl(240,6%,14%)] focus:border-[hsl(240,6%,22%)] rounded-lg pl-9 pr-4 py-2.5 text-sm text-[hsl(0,0%,93%)] placeholder-[hsl(240,5%,30%)] focus:outline-none transition-colors duration-200"
               id="search-input"
             />
           </div>
 
-          {/* Toggle Filters Button */}
+          {/* Refine toggle */}
           <button
             onClick={() => setShowFilters(e => !e)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-xl border transition-all duration-300 ${
-              showFilters 
-                ? 'bg-blue-500/10 border-blue-500/25 text-blue-400' 
-                : 'bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'
-            }`}
+            className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold rounded-lg border transition-all duration-200 ${showFilters
+                ? 'bg-[hsl(210,100%,66%)]/8 border-[hsl(210,100%,66%)]/20 text-[hsl(210,100%,66%)]'
+                : 'bg-white/[0.02] border-[hsl(240,6%,14%)] text-[hsl(240,5%,48%)] hover:text-white hover:border-[hsl(240,6%,22%)]'
+              }`}
           >
-            <SlidersHorizontal size={14} />
+            <SlidersHorizontal size={13} />
             <span className="hidden sm:inline">Refine</span>
+            {activeFilterCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-[hsl(210,100%,66%)]/15 text-[hsl(210,100%,66%)] text-[9px] font-mono font-bold flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
           </button>
 
           {/* Result count */}
-          <span className="text-xs font-bold text-gray-500 font-mono tracking-wide uppercase px-3 py-2 bg-white/5 rounded-lg border border-white/5 select-none">
-            {totalVisible} jobs
+          <span className="text-[10px] font-mono font-bold text-[hsl(240,5%,38%)] tracking-wider uppercase px-3 py-2.5 bg-white/[0.02] rounded-lg border border-[hsl(240,6%,14%)] select-none whitespace-nowrap">
+            {totalVisible} <span className="text-[hsl(240,5%,25%)]">results</span>
           </span>
         </div>
 
-        {/* Expandable Advanced Filters (Glass container) */}
-        <div className={`transition-all duration-300 ease-in-out overflow-hidden space-y-4 ${
-          showFilters ? 'max-h-[300px] opacity-100 py-1' : 'max-h-0 opacity-0 pointer-events-none'
-        }`}>
-          
-          {/* Verdict Toggles & Status filters */}
-          <div className="flex flex-wrap gap-5 items-center">
-            {/* Verdict Filter */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold text-gray-500 font-mono uppercase tracking-wider">Score Verdict</span>
-              <div className="flex items-center bg-black/30 border border-white/5 rounded-xl p-0.5">
-                {VERDICTS.map((v) => {
-                  const isActive = filters.verdict === v.value;
-                  const activeStyle = v.value === 'apply' 
-                    ? 'bg-green-500/15 border-green-500/20 text-green-400'
-                    : v.value === 'maybe'
-                    ? 'bg-amber-500/15 border-amber-500/20 text-amber-400'
-                    : v.value === 'skip'
-                    ? 'bg-red-500/15 border-red-500/20 text-red-400'
-                    : 'bg-white/10 border-white/10 text-white';
-
-                  return (
-                    <button
-                      key={v.value}
-                      id={`verdict-${v.value}`}
-                      className={`px-4 py-2 text-sm font-semibold rounded-lg border border-transparent transition-all duration-300 ${
-                        isActive 
-                          ? `${activeStyle}`
-                          : 'text-gray-500 hover:text-gray-300'
-                      }`}
-                      onClick={() => onChange({ ...filters, verdict: v.value as FilterState['verdict'] })}
-                    >
-                      {v.label}
-                    </button>
-                  );
-                })}
+        {/* Expandable filters panel */}
+        <div className={`transition-all duration-300 ease-out overflow-hidden ${showFilters ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
+          }`}>
+          <div className="pt-3 pb-1 border-t border-[hsl(240,6%,14%)]/50 space-y-4">
+            {/* Filter groups row */}
+            <div className="flex flex-wrap gap-5 items-end">
+              {/* Verdict */}
+              <div className="space-y-1.5">
+                <span className="serif-heading text-[11px]">Verdict</span>
+                <div className="flex items-center bg-[hsl(240,8%,5%)] border border-[hsl(240,6%,14%)] rounded-lg p-0.5">
+                  {VERDICTS.map((v) => {
+                    const isActive = filters.verdict === v.value;
+                    return (
+                      <button
+                        key={v.value}
+                        id={`verdict-${v.value}`}
+                        className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${isActive
+                            ? 'bg-white/[0.06] text-white shadow-sm'
+                            : 'text-[hsl(240,5%,38%)] hover:text-[hsl(240,5%,60%)]'
+                          }`}
+                        style={isActive && 'color' in v ? { color: v.color } : undefined}
+                        onClick={() => onChange({ ...filters, verdict: v.value as FilterState['verdict'] })}
+                      >
+                        {v.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Status Filter */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold text-gray-500 font-mono uppercase tracking-wider">Job Status</span>
-              <div className="flex items-center bg-black/30 border border-white/5 rounded-xl p-0.5">
-                {STATUSES.map((s) => {
-                  const isActive = filters.status === s.value;
-                  return (
-                    <button
-                      key={s.value}
-                      id={`status-${s.value}`}
-                      className={`px-4 py-2 text-sm font-semibold rounded-lg border border-transparent transition-all duration-300 ${
-                        isActive
-                          ? 'bg-white/10 border-white/10 text-white'
-                          : 'text-gray-500 hover:text-gray-300'
-                      }`}
-                      onClick={() => onChange({ ...filters, status: s.value as FilterState['status'] })}
-                    >
-                      {s.label}
-                    </button>
-                  );
-                })}
+              {/* Status */}
+              <div className="space-y-1.5">
+                <span className="serif-heading text-[11px]">Status</span>
+                <div className="flex items-center bg-[hsl(240,8%,5%)] border border-[hsl(240,6%,14%)] rounded-lg p-0.5">
+                  {STATUSES.map((s) => {
+                    const isActive = filters.status === s.value;
+                    return (
+                      <button
+                        key={s.value}
+                        id={`status-${s.value}`}
+                        className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${isActive
+                            ? 'bg-white/[0.06] text-white shadow-sm'
+                            : 'text-[hsl(240,5%,38%)] hover:text-[hsl(240,5%,60%)]'
+                          }`}
+                        onClick={() => onChange({ ...filters, status: s.value as FilterState['status'] })}
+                      >
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Score Slider */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold text-gray-500 font-mono uppercase tracking-wider">Min Score</span>
-              <div className="flex items-center gap-3 bg-black/20 border border-white/5 rounded-xl px-4 py-2 h-[40px]">
-                <input
-                  type="range"
-                  min={0}
-                  max={12}
-                  value={filters.minScore}
-                  onChange={(e) => onChange({ ...filters, minScore: parseInt(e.target.value) })}
-                  className="w-24 accent-blue-500 h-1 bg-white/10 rounded-lg cursor-pointer"
-                  id="min-score-slider"
-                />
-                <span className="text-sm font-mono font-bold text-blue-400 w-4">{filters.minScore}</span>
+              {/* Min Score */}
+              <div className="space-y-1.5">
+                <span className="serif-heading text-[11px]">Min Score</span>
+                <div className="flex items-center gap-2.5 bg-[hsl(240,8%,5%)] border border-[hsl(240,6%,14%)] rounded-lg px-3.5 py-1.5 h-[36px]">
+                  <input
+                    type="range"
+                    min={0}
+                    max={12}
+                    value={filters.minScore}
+                    onChange={(e) => onChange({ ...filters, minScore: parseInt(e.target.value) })}
+                    className="w-20 accent-[hsl(210,100%,66%)] h-1 bg-[hsl(240,6%,14%)] rounded-lg cursor-pointer"
+                    id="min-score-slider"
+                  />
+                  <span className="text-xs font-mono font-bold text-[hsl(210,100%,66%)] w-4 text-center">{filters.minScore}</span>
+                </div>
               </div>
-            </div>
 
-            {/* Show Hidden */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold text-gray-500 font-mono uppercase tracking-wider">Skipped Roles</span>
-              <button
-                onClick={() => onChange({ ...filters, showHidden: !filters.showHidden })}
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border h-[40px] transition-all duration-300 ${
-                  filters.showHidden 
-                    ? 'bg-blue-500/10 border-blue-500/25 text-blue-400'
-                    : 'bg-black/20 border-white/5 text-gray-500 hover:text-gray-300'
-                }`}
-                id="show-hidden-toggle"
-              >
-                {filters.showHidden ? <Eye size={14} /> : <EyeOff size={14} />}
-                <span>{filters.showHidden ? 'Show Skipped' : 'Hide Skipped'}</span>
-              </button>
+              {/* Show Hidden */}
+              <div className="space-y-1.5">
+                <span className="serif-heading text-[11px]">Skipped</span>
+                <button
+                  onClick={() => onChange({ ...filters, showHidden: !filters.showHidden })}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg border h-[36px] transition-all duration-200 ${filters.showHidden
+                      ? 'bg-[hsl(210,100%,66%)]/8 border-[hsl(210,100%,66%)]/20 text-[hsl(210,100%,66%)]'
+                      : 'bg-[hsl(240,8%,5%)] border-[hsl(240,6%,14%)] text-[hsl(240,5%,38%)] hover:text-[hsl(240,5%,60%)]'
+                    }`}
+                  id="show-hidden-toggle"
+                >
+                  {filters.showHidden ? <Eye size={12} /> : <EyeOff size={12} />}
+                  <span>{filters.showHidden ? 'Visible' : 'Hidden'}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Sources Chip Bar */}
-        <div className="space-y-2">
-          <span className="text-[10px] font-bold text-gray-500 font-mono uppercase tracking-wider block">Job Sources</span>
-          <div className="flex items-center gap-2 flex-wrap">
-            {SOURCES.map((s) => {
+        {/* Sources + Stats bar side-by-side row */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
+          {/* Source chips */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="serif-heading text-[11px] mr-1">Sources</span>
+            {visibleSources.map((s) => {
               const isSelected = filters.sources.includes(s.value);
               const isNoneSelected = filters.sources.length === 0;
 
@@ -216,23 +309,49 @@ export function FilterBar({ filters, onChange, totalVisible }: FilterBarProps) {
                 <button
                   key={s.value}
                   id={`source-${s.value}`}
-                  className={`source-chip border transition-all duration-300 py-1.5 px-3.5 text-xs rounded-xl ${
-                    isNoneSelected
-                      ? `${s.color} opacity-60 hover:opacity-100 hover:translate-y-[-1px]`
+                  className={`flex items-center gap-1.5 border rounded-md transition-all duration-200 py-1 px-2.5 text-[10px] font-mono font-semibold tracking-wider uppercase ${isNoneSelected
+                      ? 'border-[hsl(240,6%,14%)] text-[hsl(240,5%,48%)] bg-transparent hover:bg-white/[0.03] hover:border-[hsl(240,6%,22%)]'
                       : isSelected
-                      ? `${s.color} hover:translate-y-[-1px] shadow-sm`
-                      : 'border-white/5 text-gray-600 bg-transparent hover:text-gray-400 hover:bg-white/5'
-                  }`}
+                        ? 'border-[hsl(240,6%,22%)] text-white bg-white/[0.04] shadow-sm'
+                        : 'border-transparent text-[hsl(240,5%,25%)] bg-transparent hover:text-[hsl(240,5%,40%)]'
+                    }`}
                   onClick={() => toggleSource(s.value)}
                 >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{
+                      backgroundColor: s.dot,
+                      opacity: isNoneSelected ? 0.6 : isSelected ? 1 : 0.25,
+                    }}
+                  />
                   {s.label}
                 </button>
               );
             })}
           </div>
+
+          {/* Stats Metrics pills next to it */}
+          {stats && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <MetricPill label="Today" value={stats.new_today} color="hsl(210, 100%, 66%)" />
+              <MetricPill label="Niche" value={stats.niche_matches} color="hsl(250, 80%, 68%)" />
+              <MetricPill label="Apply" value={stats.by_verdict.apply ?? 0} color="hsl(160, 84%, 58%)" />
+              <MetricPill label="Maybe" value={stats.by_verdict.maybe ?? 0} color="hsl(38, 100%, 62%)" />
+              <MetricPill label="Total" value={stats.total_jobs} color="hsl(240, 5%, 52%)" />
+            </div>
+          )}
         </div>
 
       </div>
+    </div>
+  );
+}
+
+function MetricPill({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="flex items-center gap-1.5 bg-white/[0.02] border border-[hsl(240,6%,14%)] rounded-lg px-2.5 py-1 min-w-[55px] text-[10px] select-none">
+      <span className="font-mono font-semibold uppercase tracking-wider text-[hsl(240,5%,38%)]">{label}</span>
+      <span className="font-bold font-mono text-xs" style={{ color }}>{value}</span>
     </div>
   );
 }
