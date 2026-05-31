@@ -40,8 +40,8 @@ const STATUS_OVERLAYS: Record<string, string> = {
 const KNOWN_SKILLS = new Set([
   'react', 'next.js', 'node.js', 'express.js', 'typescript', 'python',
   'postgresql', 'docker', 'aws', 'fastapi', 'prisma', 'tailwind css',
-  'webrtc', 'websockets', 'socket.io', 'livekit', 'real-time systems',
-  'sfu', 'mediasoup',
+  'solidity', 'rust', 'smart contracts', 'evm', 'cryptography', 'dapps',
+  'defi', 'web3', 'ethereum',
 ]);
 
 function timeAgo(dateStr: string | null): string {

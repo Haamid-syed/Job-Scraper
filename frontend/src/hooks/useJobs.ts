@@ -119,8 +119,8 @@ export function useDraftEmail(jobId: string) {
     queryFn: async () => {
       if (isShowcase) {
         return {
-          subject: "Application for Developer Role - Haamid",
-          body: "Hi Team,\n\nI saw your job opening and would love to apply. As a fullstack developer specialized in WebRTC and real-time systems, I have built Social Square and Carbonly. Looking forward to speaking!\n\nBest,\nHaamid"
+          subject: "Application for Developer Role - Alex",
+          body: "Hi Team,\n\nI saw your job opening and would love to apply. As a fullstack developer specialized in Web3, smart contracts, and Solidity, I have built decentralized applications and robust smart contracts. Looking forward to speaking!\n\nBest,\nAlex"
         };
       }
       const { data } = await axios.post<{ subject: string; body: string }>(
