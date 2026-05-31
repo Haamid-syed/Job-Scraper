@@ -5,6 +5,7 @@ import type { RefreshStatus } from '../types';
 
 export function useRefresh() {
   const queryClient = useQueryClient();
+  const isShowcase = (import.meta as any).env.VITE_SHOWCASE_MODE === 'true';
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [runId, setRunId] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -19,6 +20,13 @@ export function useRefresh() {
 
   const pollStatus = useCallback(() => {
     stopPolling();
+    if (isShowcase) {
+      setTimeout(() => {
+        isRefreshingRef.current = false;
+        setIsRefreshing(false);
+      }, 3000);
+      return;
+    }
 
     pollRef.current = setInterval(async () => {
       try {
@@ -36,11 +44,19 @@ export function useRefresh() {
         setIsRefreshing(false);
       }
     }, 3000);
-  }, [queryClient, stopPolling]);
+  }, [queryClient, stopPolling, isShowcase]);
 
   const triggerRefresh = useCallback(async () => {
     // Use ref for synchronous guard — avoids stale closure from useState
     if (isRefreshingRef.current) return;
+
+    if (isShowcase) {
+      isRefreshingRef.current = true;
+      setIsRefreshing(true);
+      setRunId("showcase-run-id");
+      pollStatus();
+      return;
+    }
 
     try {
       isRefreshingRef.current = true;
@@ -55,7 +71,7 @@ export function useRefresh() {
       setIsRefreshing(false);
       console.error('Failed to trigger refresh:', err);
     }
-  }, [pollStatus]);
+  }, [pollStatus, isShowcase]);
 
   return { isRefreshing, runId, triggerRefresh };
 }
