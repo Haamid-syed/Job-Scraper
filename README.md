@@ -42,7 +42,13 @@ JobRadar scores listings on a precise **12-point calibration scale** (Role Match
 
 ### 4. Circuit Breakers & Centralized Rate Limiter
 - Scrapers automatically trigger a **60-minute cooling breaker** after 3 consecutive failures to safeguard network health.
-- A thread-safe, centralized Token-Bucket Rate Limiter monitors provider quotas (Gemini: 10 RPM, OpenRouter: 20 RPM), backing off on `429`s and healing gradually on successes.
+
+### 5. Advanced Filtration & Calibration (V2.1)
+* **Dynamic Tech title Filtering:** Compiles positive keywords directly from the developer profile (React, Node, WebRTC) combined with standard software terms, preventing generic non-technical listings from entering Phase 1.
+* **Regex-Based Experience Cap:** Dynamically parses text matching experience patterns (e.g., `2-6 years`, `3yrs`) and strictly rejects any job requiring **2 or more years of experience**.
+* **US Visa & Citizenship Screening:** Automatically filters out jobs that explicitly require US citizenship or deny visa sponsorship, while keeping global remote or India-friendly listings.
+* **Seniority Exclusion:** Excludes seniority keywords (`senior`, `lead`, `sr.`, `principal`) strictly from titles using boundary-safe matching to avoid false positives in descriptions.
+* **Scorer Clean Room (Self-Healing DB):** Automatically sweeps legacy unscored jobs in the DB during Phase 2, filtering non-compliant roles at zero LLM cost to conserve API quotas.
 
 ---
 
