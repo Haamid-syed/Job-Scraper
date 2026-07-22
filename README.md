@@ -1,10 +1,10 @@
-# 🚀 JobRadar (V2.1) — Real-Time, Multi-Tier AI Job Aggregator & Outreach Copilot
+# JobRadar (V2.1) — Real-Time, Multi-Tier AI Job Aggregator & Outreach Copilot
 
 JobRadar is a lightweight, lightning-fast, and highly resilient local job-hunting platform custom-calibrated for high-signal developer profiles. It automatically aggregates, deduplicates, enriches, and scores software listings from 12 diverse sources before presenting them on a premium **Sleek Cyberpunk Glassmorphism** dashboard.
 
 ---
 
-## 🎨 Design System & UI Vibe
+## Design System & UI Vibe
 The frontend is built using **Vite, React, TypeScript, and Tailwind CSS**, featuring an custom-curated visual design:
 - **Premium Dark Aesthetics**: A deep slate background layered with cosmic-indigo background radial gradient glows.
 - **Glassmorphism Panels**: Frosted card structures (`backdrop-blur-md`) encased in ultra-thin semi-transparent borders.
@@ -14,7 +14,7 @@ The frontend is built using **Vite, React, TypeScript, and Tailwind CSS**, featu
 
 ---
 
-## ⚡ Key Architectural Features (V2)
+## Key Architectural Features (V2)
 
 ### 1. Two-Phase Scrape-and-Score Pipeline
 Scraping and scoring are split into separate non-blocking transactions. Raw scraped listings are verified, filtered, and saved as `unscored` immediately. If a crash or timeout occurs during the subsequent LLM scoring pass, all unscored records are retained safely and picked up automatically on the next scheduler interval.
@@ -52,7 +52,7 @@ JobRadar scores listings on a precise **12-point calibration scale** (Role Match
 
 ---
 
-## 📦 Project Directory Structure
+## Project Directory Structure
 ```
 Job_Scraper/
 ├── .gitignore              # Safely excludes local venv, node_modules, active DB, logs
@@ -77,7 +77,7 @@ Job_Scraper/
 
 ---
 
-## 🚀 Quick Start Guide
+## Quick Start Guide
 
 ### 1. Configure Secret API Keys
 For security, JobRadar isolates sensitive credentials outside of `config.yaml`.
@@ -114,7 +114,7 @@ npm run dev
 
 ---
 
-## 🗃️ Key Diagnostic Commands
+## Key Diagnostic Commands
 
 - **Trigger manual refresh**: `curl -X POST http://localhost:8000/api/refresh`
 - **Rescore pending unscored jobs**: `curl -X POST http://localhost:8000/api/rescore`
